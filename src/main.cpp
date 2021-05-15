@@ -79,14 +79,6 @@ void wakeup() {
 void wakeOnDock() {
   DLOG("Wakeup Roomba on dock\n");
   wakeup();
-#ifdef ROOMBA_650_SLEEP_FIX
-  // Some black magic from @AndiTheBest to keep the Roomba awake on the dock
-  // See https://github.com/johnboiles/esp-roomba-mqtt/issues/3#issuecomment-402096638
-  delay(10);
-  Serial.write(135); // Clean
-  delay(150);
-  Serial.write(143); // Dock
-#endif
 }
 
 void wakeOffDock() {
