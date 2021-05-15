@@ -298,7 +298,7 @@ void sleepIfNecessary() {
       root["charge"] = 0;
       String jsonStr;
       serializeJson(root, jsonStr);
-     mqttClient.publish(getMQTTTopic(MQTT_STATE_TOPIC), jsonStr.c_str(), true);
+      mqttClient.publish(getMQTTTopic(MQTT_STATE_TOPIC), jsonStr.c_str(), true);
     }
     delay(200);
 
@@ -410,7 +410,6 @@ void setup() {
   String hostname(HOSTNAME);
   WiFi.hostname(hostname);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
   }
@@ -479,7 +478,6 @@ void sendConfig() {
   mqttClient.publish(getMQTTTopic(MQTT_CONFIG_TOPIC), jsonStr.c_str());
 }
 
-
 void sendStatus() {
   if (!mqttClient.connected()) {
     DLOG("MQTT Disconnected, not sending status\n");
@@ -502,6 +500,8 @@ void sendStatus() {
     if (roombaState.cleaning) {
       curState = "cleaning";
     }
+  }
+  root["state"] = curState;
   String jsonStr;
   serializeJson(root, jsonStr);
   DLOG("Reporting status: %s\n", jsonStr.c_str());
@@ -529,7 +529,6 @@ void loop() {
   }
 
   long now = millis();
-  // If MQTT client can't connect to broker, then reconnect
   // If MQTT client can't connect to broker, then reconnect
   if ((now - lastConnectTime) > 5000) {
     lastConnectTime = now;
