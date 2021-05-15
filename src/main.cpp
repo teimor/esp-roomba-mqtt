@@ -66,14 +66,38 @@ PubSubClient mqttClient(wifiClient);
 const PROGMEM char *commandTopic = MQTT_COMMAND_TOPIC;
 const PROGMEM char *statusTopic = MQTT_STATE_TOPIC;
 
+
 void wakeup() {
+#ifndef ROOMBA_500
   DLOG("Wakeup Roomba\n");
   pinMode(BRC_PIN,OUTPUT);
   digitalWrite(BRC_PIN,LOW);
   delay(200);
   pinMode(BRC_PIN,INPUT);
   delay(200);
-  Serial.write(128); // Start
+  roomba.start();
+#else
+  // test connection to roomba
+  uint8_t packetLength;
+  bool result = roomba.pollSensors(roombaPacket, sizeof(roombaPacket), &packetLength);
+  if (result)  {
+    DLOG("No need to wakeup Roomba\n");
+  } else {
+    DLOG("Wakeup Roomba\n");
+    pinMode(BRC_PIN, OUTPUT);
+    delay(50);
+    digitalWrite(BRC_PIN, LOW);
+    delay(50);
+    digitalWrite(BRC_PIN, HIGH);
+    delay(200);
+    digitalWrite(BRC_PIN, LOW);
+    delay(50);
+    pinMode(BRC_PIN, INPUT);
+    delay(50);
+    roomba.start();
+    delay(200);
+  }
+  #endif
 }
 
 void wakeOnDock() {
@@ -86,6 +110,20 @@ void wakeOffDock() {
   Serial.write(131); // Safe mode
   delay(300);
   Serial.write(130); // Passive mode
+}
+
+
+// stop current action
+void roombaStop() {
+  if (roombaState.cleaning) {
+    DLOG("Stopping\n");
+    roomba.start();
+    delay(50);
+    roomba.safeMode();
+    delay(50);
+    roomba.start();
+    delay(50);
+  }
 }
 
 bool performCommand(const char *cmdchar) {
@@ -107,12 +145,17 @@ bool performCommand(const char *cmdchar) {
     DLOG("Toggling\n");
     roomba.cover();
   } else if (cmd == "stop") {
+#ifdef ROOMBA_500
+    roombaStop();
+    roombaState.cleaning = false;
+#else
     if (roombaState.cleaning) {
       DLOG("Stopping\n");
       roomba.cover();
     } else {
       DLOG("Not cleaning, can't stop\n");
     }
+#endif
   } else if (cmd == "clean_spot") {
     DLOG("Cleaning Spot\n");
     roombaState.cleaning = true;
@@ -414,6 +457,10 @@ void sendStatus() {
 int lastStateMsgTime = 0;
 int lastWakeupTime = 0;
 int lastConnectTime = 0;
+long wakeupInterval = 50000;
+
+// Wake up every 5 hours. Just to update battery level.
+// long wakeupInterval = 18e7;
 
 void loop() {
   // Important callbacks that _must_ happen every cycle
@@ -434,7 +481,7 @@ void loop() {
     reconnect();
   }
   // Wakeup the roomba at fixed intervals - every 50 seconds
-  if (now - lastWakeupTime > 50000) {
+  if (now - lastWakeupTime > wakeupInterval) {
     lastWakeupTime = now;
     if (!roombaState.cleaning) {
       if (roombaState.docked) {
