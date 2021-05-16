@@ -472,6 +472,8 @@ void sendConfig() {
   root["sup_feat"][3] = "return_home";
   root["sup_feat"][4] = "locate";
   root["sup_feat"][5] = "clean_spot";
+  root["sup_feat"][6] = "battery";
+  root["sup_feat"][7] = "send_command";
   String jsonStr;
   serializeJson(root, jsonStr);
   DLOG("Reporting config: %s\n", jsonStr.c_str());
